@@ -1,35 +1,34 @@
 # MYBAR
 
-A study platform foundation for bar exam preparation — Evidence, Criminal Procedure, and Legal Ethics. This phase is the **content library shell**: navigation, theming, and empty placeholders for Legislation, Cases, Study Notes, and Templates in each subject. No AI examiner, accounts, or payments yet — those are later phases, built on top of this.
+A study platform for bar exam preparation — Evidence, Criminal Procedure, and Legal Ethics.
+
+## Structure
+
+Each subject is organized by **topic** (e.g. Evidence → Hearsay), and each topic has four sections:
+
+- **Law** — the relevant Evidence Act provisions, extracted section by section
+- **Cases** — case-based examples and leading authorities
+- **Study Notes** — full explanatory notes, worked examples, and exam technique
+- **Templates** — answer templates for exam questions
+
+Each subject also has a **Legislation** page with the full Act as a downloadable PDF reference.
+
+Currently built: **Evidence → Hearsay**, fully populated from your uploaded material (ss 59, 60, 61, 62, 65, 66, 66A, 67, 68, 69, 75 of the Evidence Act 2008 (Vic); your case examples; your full study notes; your two exam templates). Criminal Procedure and Legal Ethics have no topics yet — add them the same way.
 
 ## Stack
 
 - Next.js 14 (App Router) + TypeScript (strict mode)
-- Tailwind CSS (theme-ready, light/dark via CSS variables)
+- Tailwind CSS + `@tailwindcss/typography` (for readable long-form legal text)
+- `react-markdown` (renders content stored as markdown)
 - Vitest + Testing Library
-- ESLint + Prettier
 
-## Structure
+## Adding another topic (e.g. Admissions)
 
-```
-src/
-  app/                        Routes (Next.js App Router)
-    page.tsx                  Home — links into each subject
-    subjects/[subject]/       Subject overview (4 section cards)
-    subjects/[subject]/[section]/   Placeholder content view
-    settings/                 Appearance, account (placeholder), local data reset
-  components/
-    layout/                   AppShell, Sidebar (route-aware), TopBar
-    ui/                       Button, Card, Loading/Error/EmptyState
-    theme/                    ThemeProvider, ThemeToggle
-  features/
-    subjects/                 subjects.config.ts (the 3 subjects × 4 sections), views
-    settings/                 SettingsPage
-  hooks/                      useLocalStorage, useTheme, useThemeContext
-  lib/                        storage.ts (validated local persistence), nav.ts, utils.ts
-  types/                      Shared types
-tests/                        Mirrors src/, 18 tests
-```
+1. Add the topic to `src/features/subjects/subjects.config.ts` under `TOPICS.evidence`.
+2. Create `src/content/evidence/admissions/{law,cases,notes,templates}.ts`, each exporting a `ContentDoc[]` (see the `hearsay` folder for the pattern).
+3. Register it in `src/content/index.ts`.
+
+No routes or components need to change — the topic/section pages are generic and read from this content index.
 
 ## Getting started
 
@@ -44,24 +43,18 @@ pnpm dev        # http://localhost:3000
 - `pnpm build` — production build (also typechecks and lints)
 - `pnpm start` — run the production build
 - `pnpm typecheck` / `pnpm lint` / `pnpm format` / `pnpm format:check`
-- `pnpm test` — Vitest (18 tests)
+- `pnpm test` — Vitest (27 tests)
 
 ## Verified in this environment
 
-`pnpm install`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (18/18 passing), and `pnpm build` all ran clean — the build statically generated all 20 pages (home, settings, 3 subject pages, 12 section pages, not-found). The production server was also started and smoke-tested directly: home, subject pages, section placeholders, settings, and 404 handling all returned the expected content and status codes.
+`pnpm install`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (27/27 passing), and `pnpm build` all ran clean — the build statically generated all 16 pages, including the four populated Hearsay content pages. The production server was also started directly and every route was checked by request: the Evidence subject page, the Hearsay topic page (showing entry counts), all four Hearsay sections (confirmed real legislative text, case names, notes headings, and template content are present), the Legislation page and its PDF download (200 OK), the empty-topics state for Criminal Procedure, and a 404 for a non-existent topic.
 
-## Where things stand vs. the full MYBAR vision
+## What's not built yet
 
-Built now:
-- Navigable structure for all 3 subjects × 4 content sections, empty and ready for real content
-- Theme (light/dark/system), persisted locally
-- Settings page with a placeholder "Account & subscription" section
-
-Not built yet (next phases, in the order you picked — content first):
-- **Real content.** `src/features/subjects/subjects.config.ts` defines the structure; actual legislation text, cases, notes, and templates need a content source (e.g. MDX files per section, or a database) wired into `SectionContent.tsx`.
-- **AI examiner.** Practice questions, grading against a model answer, and a weak-area tally, backed by the Claude API. This needs a server-side API route so your Anthropic API key never reaches the browser — get a key at console.anthropic.com when you're ready (Settings → API keys), and I'll wire it in without ever hardcoding it.
-- **Accounts & billing.** Sign-up tied to bar exam registration, and the $100/month subscription gate. This needs an auth provider and a payment processor (e.g. Stripe) — real money movement always requires your direct action, I can build the integration but won't execute charges.
+- **More topics.** Only Hearsay exists. Admissions and the rest of Evidence, plus all of Criminal Procedure and Legal Ethics, follow the same pattern above.
+- **AI examiner.** Practice questions graded against a model answer, with a weak-area tally — needs a server-side API route calling Claude, so your API key never reaches the browser.
+- **Accounts & billing.** Sign-up and the $100/month subscription gate.
 
 ## Persistence
 
-`src/lib/storage.ts` validates every read/write against `window.localStorage` and never throws. It currently only holds device-local preferences (theme). Study content, scores, and account data belong in a real backend once that phase starts — not in this module.
+`src/lib/storage.ts` validates every read/write against `window.localStorage` and never throws. It currently only holds device-local preferences (theme). Study content lives in `src/content` as code, not local storage — that's deliberate, since it needs to be the same for every user, not per-device.
